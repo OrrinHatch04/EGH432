@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+### Assessment 1.1 Q2 v1 | Orrin Hatch
+
 from typing import Dict, List, Literal as L
 import numpy as np
 
@@ -23,9 +26,34 @@ def rotation_create(angle: float, axis: L["x", "y", "z"]) -> np.ndarray:
     rotation_matrix
         a (3, 3) numpy array representing the rotation matrix
     """
+    # Shorthand trig for better display
+    c = np.cos(angle)
+    s =np.sin(angle)
 
-    # your code goes here
-    pass
+    # dtype=float ensures the array is always float64, this prevents numpy from
+    # inferring an object array when 'c' and 's' are mixed with integer literals
+    if axis == "x":
+        R = np.array([
+            [1, 0, 0],
+            [0, c, -s],
+            [0, s, c]
+        ], dtype=float)
+    elif axis == "y":
+        R = np.array([
+            [c, 0, s],
+            [0, 1, 0],
+            [-s, 0, c]
+        ], dtype=float)
+    elif axis == "z":
+        R = np.array([
+            [c, -s, 0],
+            [s, c, 0],
+            [0, 0, 1]
+        ], dtype=float)
+    else:
+        raise ValueError("Axis must be 'x', 'y', or 'z'")
+    
+    return R
 
 
 # --------- Question 2.2 ---------- #
@@ -51,9 +79,16 @@ def translation_create(translation: float, axis: L["x", "y", "z"]) -> np.ndarray
         a (3, 1) numpy array representing the translation vector
     """
 
-    # your code goes here
-    pass
+    t = np.zeros((3, 1))
 
+    if axis == 'x':
+        t[0,0] = translation
+    elif axis == 'y':
+        t[1,0] = translation
+    elif axis == 'z':
+        t[2, 0] = translation
+
+    return t
 
 # --------- Question 2.3 ---------- #
 
@@ -80,8 +115,8 @@ class TransformCreate:
 
     def __init__(self, type: L["r", "t"], axis: L["x", "y", "z"]):
 
-        # your code goes here
-        pass
+        self.type = type
+        self.axis = axis
 
     def evaluate(self, arg: float) -> np.ndarray:
         """
@@ -106,8 +141,14 @@ class TransformCreate:
 
         """
 
-        # your code goes here
-        pass
+        T = np.eye(4)
+
+        if self.type == "r":
+            T[:3, :3] = rotation_create(arg, self.axis)
+        elif self.type == "t":
+            t = translation_create(arg, self.axis)
+            T[:3, 3] = t[:, 0]
+        return T
 
 
 # --------- Question 2.4 ---------- #
@@ -150,8 +191,9 @@ def transform_composer(
 
     """
 
-    # your code goes here
-    pass
+    aTc = aTb.evaluate(arg1) @ bTc.evaluate(arg2)
+
+    return aTc
 
 
 # --------- Question 2.5 ---------- #
@@ -175,8 +217,15 @@ class TransformComposer:
 
     def __init__(self, transforms: List[TransformCreate]):
 
-        # your code goes here
-        pass
+        self.transforms = transforms
+
+        # Pre-cache types and axes as plain lists to avoid repeated attribute
+        # lookups on each TransformCreate object during evaluate(). This is a
+        # small optimisation that matters when evaluate() is called many times.
+        # Learned this technique in EGB439.
+
+        self._types = [t.type for t in transforms]
+        self._axes = [t.axis for t in transforms]
 
     def evaluate(self, args: List[float]) -> np.ndarray:
         """
@@ -207,5 +256,9 @@ class TransformComposer:
 
         """
 
-        # your code goes here
-        pass
+        T = np.eye(4)
+
+        for transform, arg in zip(self.transforms, args):
+            T = T @ transform.evaluate(arg)
+
+        return T

@@ -1,4 +1,8 @@
+#!/usr/bin/env python
+### Assessment 1.1 Q1 v1 | Orrin Hatch ###
+
 from typing import Dict, List
+
 
 # --------- Question 1.1 ---------- #
 
@@ -24,7 +28,8 @@ def list_to_dict(input_list: list) -> dict:
     # declare the output type
     out_dict: Dict[str, int] = {}
 
-    # your code goes here
+    for word in input_list:
+        out_dict[word] = len(word)
 
     return out_dict
 
@@ -57,12 +62,23 @@ def count_population(pop_dict: Dict[str, int], countries: List[str]) -> int:
 
     """
 
+    ## For loops are costly and a tiny bit slow... has to go through every iteration.
+    ## This is the "correct" version, but I am gonna experiment a little bit.
+
     # declare the output type
-    total_population: int = 0
+    # total_population: int = 0
 
-    # your code goes here
+    # for country in countries:
+    #     total_population += pop_dict.get(country, 0)
 
-    return total_population
+    # return total_population
+
+    # Generator expression inside sum() avoids building an intermediate list in
+    # memory, making this speedier and more memory efficient than a 'for loop'. The
+    # "extra" guard 'if c in pop_dict' will skip countries not in the dictionary
+    # already rather than raising a KeyError or checking every country in the list.
+
+    return sum(pop_dict[c] for c in countries if c in pop_dict)
 
 
 # --------- Question 1.3 ---------- #
@@ -90,8 +106,10 @@ class Robot:
     """
 
     def __init__(self, name: str, n: int, joint_type: str, price: float):
-        # Your code goes here
-        pass
+        self.name = name
+        self.n = n
+        self.joint_type = joint_type
+        self.price = price
 
     def __str__(self):
         """
@@ -107,8 +125,7 @@ class Robot:
             A string representation of this `Robot`
 
         """
-        # Your code goes here
-        pass
+        return f"{self.name} Robot Description: number of joints: {self.n}, joint type: {self.joint_type}"
 
 
 # --------- Question 1.4 ---------- #
@@ -152,7 +169,23 @@ def csv_to_robots(file_name: str) -> List[Robot]:
     # declare the output type
     robot_list: List[Robot] = []
 
-    # your code goes here
+    with open(file_name, 'r') as f:
+        lines = f.readlines()
+
+    headers = [h.strip() for h in lines[0].split(',')]
+
+    for line in lines[1:]:
+        values = [v.strip() for v in line.split(',')]
+
+        row = dict(zip(headers, values))
+
+        robot = Robot(
+            name=row['name'],
+            n=int(row['n']),
+            joint_type=row['joint_type'],
+            price=float(row['price'])
+        )
+        robot_list.append(robot)
 
     return robot_list
 
@@ -184,5 +217,14 @@ def closest_robot(file_name: str, price_limit: float) -> Robot:
 
     """
 
-    # your code goes here
-    pass
+    robots = csv_to_robots(file_name)
+
+    # Price filter for purchasable robots
+    affordable = [r for r in robots if r.price <= price_limit]
+
+    if affordable:
+        # Returning the closest to price limit
+        return max(affordable, key=lambda r: r.price)
+    else:
+        # If all robots exceed limit, return the cheapest robot possible
+        return min(robots, key=lambda r: r.price)
